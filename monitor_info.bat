@@ -23,7 +23,11 @@ setlocal enabledelayedexpansion
 cls
 
 call :initConstants
-call :getEdid
+call :getEdid || (
+    echo ERROR: Valid EDID not found. Aborting.
+    echo This may be caused by the script running on a VM.
+    exit /b 1
+)
 call :extractData   8   9 manufacturer_id           bin BE
 call :extractData  10  11 manufacturer_product_code hex LE
 call :extractData  12  15 raw_serial                int LE
@@ -161,6 +165,8 @@ set "full_reg_path=HKLM\SYSTEM\CurrentControlSet\Enum"
 for /f "delims=" %%A in (
     'powershell -command "(Get-WmiObject WmiMonitorID -Namespace root\wmi).InstanceName"'
 ) do set "monitor_path=%%~A"
+if "!monitor_path!"==" " exit /b 1
+
 set "full_reg_path=%full_reg_path%\%monitor_path:~0,-2%\Device Parameters"
 for /f "tokens=3" %%A in ('reg query "%full_reg_path%" /v EDID') do set "edid=%%A"
 exit /b
